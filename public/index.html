@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VHP Sync Monitor — Artotel Cabin Bromo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #12161e;
+    --border:   #1e2533;
+    --accent:   #f0c94a;
+    --accent2:  #4af0c0;
+    --danger:   #f04a6a;
+    --muted:    #4a5568;
+    --text:     #e2e8f0;
+    --text-dim: #718096;
+    --mono:     'DM Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,12,16,.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-dot {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .brand h1 { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+  .brand p  { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform: scale(1); }
+    50%      { opacity:.4; transform: scale(.7); }
+  }
+
+  #last-updated { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+
+  /* ── Layout ── */
+  main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Section headings ── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Stat cards ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: border-color .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .card:hover { border-color: #2d3748; }
+  .card:hover::before { opacity: 1; }
+
+  .card-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+  .card-value { font-family: var(--mono); font-size: 28px; font-weight: 500; color: var(--accent); line-height: 1; }
+  .card-sub   { font-size: 10px; color: var(--text-dim); margin-top: 6px; font-family: var(--mono); }
+
+  /* ── Sync controls ── */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .control-group { display: flex; flex-direction: column; gap: 6px; }
+  .control-group label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+
+  input[type="date"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="date"]:focus { border-color: var(--accent); }
+
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color .2s;
+    min-width: 180px;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .token-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+  input[type="password"], input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color .2s;
+  }
+  input[type="password"]:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+  button {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .06em;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0c10;
+  }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-primary:active { transform: none; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+  /* ── Result toast ── */
+  #sync-result {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    display: none;
+    margin-top: 0;
+    border: 1px solid;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  #sync-result.success { background: rgba(74,240,192,.08); border-color: var(--accent2); color: var(--accent2); }
+  #sync-result.error   { background: rgba(240,74,106,.08); border-color: var(--danger);  color: var(--danger);  }
+
+  /* ── Log table ── */
+  .log-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .log-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .log-header span { font-size: 12px; font-weight: 700; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 10px 16px;
+    text-align: left;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(30,37,51,.6);
+    transition: background .15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.03); }
+  tbody td {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .badge-success { background: rgba(74,240,192,.12); color: var(--accent2); }
+  .badge-error   { background: rgba(240,74,106,.12); color: var(--danger);  }
+
+  .error-cell { color: var(--danger); font-size: 10px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty-state { padding: 40px; text-align: center; color: var(--text-dim); font-family: var(--mono); font-size: 12px; }
+
+  /* ── Loading skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, #1a2030 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(10,12,16,.3);
+    border-top-color: #0a0c10;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    header { padding: 14px 16px; }
+    main   { padding: 16px; }
+    .controls { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div>
+      <h1>VHP SYNC MONITOR</h1>
+      <p>Artotel Cabin Bromo · PT. Supranusa Sindata · PT. Piranti Solusi Indonesia</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="pulse-dot" id="live-dot"></div>
+    <span id="last-updated">—</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- Stats -->
+  <p class="section-title">Table Counts</p>
+  <div class="cards" id="stat-cards">
+    <div class="card"><div class="card-label">Loading…</div><div class="card-value skeleton" style="width:60px;height:28px"></div></div>
+  </div>
+
+  <!-- Last Sync -->
+  <p class="section-title">Last Sync Info</p>
+  <div class="cards" id="last-sync-cards">
+    <div class="card"><div class="card-label">Loading…</div></div>
+  </div>
+
+  <!-- Controls -->
+  <p class="section-title">Manual Sync</p>
+  <div class="controls">
+    <div class="control-group">
+      <label>From Date</label>
+      <input type="date" id="from-date" />
+    </div>
+    <div class="control-group">
+      <label>To Date</label>
+      <input type="date" id="to-date" />
+    </div>
+    <div class="control-group">
+      <label>Report</label>
+      <select id="report-select">
+        <option value="">All Reports</option>
+        <option value="arrival-date">Reservation by Arrival Date</option>
+        <option value="creation-date">Reservation by Creation Date</option>
+        <option value="inhouse">Inhouse Guest List</option>
+        <option value="cancelled">Cancelled Reservation</option>
+        <option value="fo-turnover">FO Turnover Report</option>
+      </select>
+    </div>
+    <div class="token-group">
+      <label>API Secret (Bearer)</label>
+      <input type="password" id="api-token" placeholder="leave blank if not configured" />
+    </div>
+    <button class="btn-primary" id="sync-btn" onclick="triggerSync()">
+      ▶ Run Sync
+    </button>
+    <button class="btn-ghost" onclick="loadData()">⟳ Refresh</button>
+  </div>
+  <div id="sync-result"></div>
+
+  <!-- Logs -->
+  <p class="section-title" style="margin-top:28px">Sync Log</p>
+  <div class="log-wrap">
+    <div class="log-header">
+      <span>Recent Activity</span>
+      <span id="log-count" style="font-family:var(--mono);font-size:11px;color:var(--text-dim)"></span>
+    </div>
+    <div id="log-body">
+      <div class="empty-state">Loading logs…</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── Default dates (yesterday → today) ────────────────────────
+(function() {
+  const today = new Date();
+  const yest  = new Date(today); yest.setDate(yest.getDate() - 1);
+  document.getElementById("to-date").value   = today.toISOString().split("T")[0];
+  document.getElementById("from-date").value = yest.toISOString().split("T")[0];
+})();
+
+const API = "";   // same origin
+
+function getHeaders() {
+  const token = document.getElementById("api-token").value.trim();
+  const h = { "Content-Type": "application/json" };
+  if (token) h["Authorization"] = `Bearer ${token}`;
+  return h;
+}
+
+// ── Load status + logs ────────────────────────────────────────
+async function loadData() {
+  await Promise.all([loadStatus(), loadLogs()]);
+  document.getElementById("last-updated").textContent =
+    "updated " + new Date().toLocaleTimeString();
+}
+
+async function loadStatus() {
+  try {
+    const res = await fetch(`${API}/api/status`);
+    const data = await res.json();
+
+    // Table count cards
+    const labelMap = {
+      acb_future_booking:      "Arrival Reservations",
+      acb_reservation_list:    "Creation Reservations",
+      acb_today_inhouse_list:  "Inhouse Records",
+      acb_rsv_cancelled_list:  "Cancellations",
+      acb_turnover_list:       "Turnover Rows",
+      acb_sync_log:            "Sync Log Entries",
+    };
+
+    document.getElementById("stat-cards").innerHTML = data.tables.map(t => `
+      <div class="card">
+        <div class="card-label">${labelMap[t.table] ?? t.table}</div>
+        <div class="card-value">${t.count?.toLocaleString() ?? "—"}</div>
+        <div class="card-sub">${t.table}</div>
+      </div>
+    `).join("");
+
+    // Last sync cards
+    const ls = data.lastSync;
+    document.getElementById("last-sync-cards").innerHTML = ls ? `
+      <div class="card">
+        <div class="card-label">Last Report</div>
+        <div class="card-value" style="font-size:16px;color:var(--text)">${ls.report_type}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Time</div>
+        <div class="card-value" style="font-size:14px;color:var(--accent2)">${new Date(ls.synced_at).toLocaleString()}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Status</div>
+        <div class="card-value" style="font-size:16px;color:${ls.status==='success'?'var(--accent2)':'var(--danger)'}">${ls.status.toUpperCase()}</div>
+      </div>
+    ` : `<div class="card"><div class="card-label">No syncs yet</div></div>`;
+
+  } catch (e) {
+    document.getElementById("stat-cards").innerHTML =
+      `<div class="card"><div class="card-label" style="color:var(--danger)">Failed to load: ${e.message}</div></div>`;
+  }
+}
+
+async function loadLogs() {
+  try {
+    const headers = getHeaders();
+    const res = await fetch(`${API}/api/logs?limit=100`, { headers });
+    if (!res.ok) { renderLogsError("Auth error – check API secret"); return; }
+    const logs = await res.json();
+
+    document.getElementById("log-count").textContent = `${logs.length} entries`;
+
+    if (!logs.length) {
+      document.getElementById("log-body").innerHTML =
+        `<div class="empty-state">No sync logs found. Run your first sync above.</div>`;
+      return;
+    }
+
+    document.getElementById("log-body").innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Report</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Rows</th>
+            <th>Status</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${logs.map(l => `
+            <tr>
+              <td>${new Date(l.synced_at).toLocaleString()}</td>
+              <td>${l.report_type}</td>
+              <td>${l.from_date ?? "—"}</td>
+              <td>${l.to_date ?? "—"}</td>
+              <td>${l.rows_upserted ?? 0}</td>
+              <td><span class="badge badge-${l.status}">${l.status}</span></td>
+              <td class="error-cell" title="${l.error_message ?? ''}">${l.error_message ?? "—"}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    renderLogsError(e.message);
+  }
+}
+
+function renderLogsError(msg) {
+  document.getElementById("log-body").innerHTML =
+    `<div class="empty-state" style="color:var(--danger)">Error: ${msg}</div>`;
+}
+
+// ── Trigger sync ──────────────────────────────────────────────
+async function triggerSync() {
+  const btn    = document.getElementById("sync-btn");
+  const result = document.getElementById("sync-result");
+  const from   = document.getElementById("from-date").value;
+  const to     = document.getElementById("to-date").value;
+  const report = document.getElementById("report-select").value;
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Syncing…`;
+  result.style.display = "none";
+
+  try {
+    const endpoint = report
+      ? `/api/sync/${report}?fromDate=${from}&toDate=${to}`
+      : `/api/sync?fromDate=${from}&toDate=${to}`;
+
+    const res = await fetch(API + endpoint, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      result.className = "error";
+      result.textContent = `❌ ${data.error ?? JSON.stringify(data, null, 2)}`;
+    } else {
+      result.className = "success";
+      result.textContent = "✓ Sync complete\n\n" + JSON.stringify(data, null, 2);
+      setTimeout(loadData, 600);
+    }
+    result.style.display = "block";
+  } catch (e) {
+    result.className = "error";
+    result.textContent = `❌ ${e.message}`;
+    result.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "▶ Run Sync";
+  }
+}
+
+// ── Auto-refresh every 60 s ───────────────────────────────────
+loadData();
+setInterval(loadData, 60_000);
+</script>
+</body>
+</html>
